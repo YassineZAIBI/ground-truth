@@ -1,0 +1,25 @@
+project:
+  name: Lyra
+  tagline: the agent operator's workbench
+  voice: practical, slightly playful
+
+vocabulary:
+  unit_of_work: run
+  primary_actor: operator
+  capability: playbook
+  data_record: session
+
+style:
+  capitalization: lowercase
+  contractions: yes
+  jargon_to_avoid:
+    - abstraction
+    - component
+    - module
+
+abstraction_naming:
+  pattern: character
+  examples:
+    - 'the hands → tool executor'
+    - 'front door → auth gateway'
+    - 'traffic cop → router'

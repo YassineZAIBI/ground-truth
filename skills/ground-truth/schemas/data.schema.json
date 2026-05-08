@@ -1,0 +1,129 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Ground Truth shared state",
+  "description": "The single document that every pipeline stage reads and mutates. Living contract.",
+  "type": "object",
+  "required": ["last_commit", "scanned_at", "files", "stats"],
+  "properties": {
+    "last_commit": {
+      "type": "string",
+      "description": "Git SHA at the time of the last full scan; used as the diff base for incremental runs."
+    },
+    "scanned_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "files": {
+      "type": "array",
+      "description": "Output of Cartographer.",
+      "items": {
+        "type": "object",
+        "required": ["path", "loc", "language", "category", "hash"],
+        "properties": {
+          "path": { "type": "string" },
+          "loc": { "type": "integer", "minimum": 0 },
+          "language": { "type": "string" },
+          "category": {
+            "type": "string",
+            "enum": ["feature", "test", "config", "scaffold", "dead", "unclear"]
+          },
+          "hash": { "type": "string" },
+          "imports": { "type": "array", "items": { "type": "string" } },
+          "imported_by_count": { "type": "integer", "minimum": 0 },
+          "last_modified_days_ago": { "type": "integer", "minimum": 0 }
+        }
+      }
+    },
+    "stats": {
+      "type": "object",
+      "properties": {
+        "total_files": { "type": "integer" },
+        "by_category": { "type": "object" },
+        "by_language": { "type": "object" },
+        "edges": { "type": "integer" }
+      }
+    },
+    "abstractions": {
+      "type": "array",
+      "description": "Output of Archaeologist + Triage Medic + Business Translator.",
+      "items": {
+        "type": "object",
+        "required": ["id", "name", "files"],
+        "properties": {
+          "id": { "type": "string", "description": "Stable slug, e.g. 'front_door'." },
+          "name": { "type": "string", "description": "Project-voice name, e.g. 'front door'." },
+          "literal_name": { "type": "string", "description": "Technical name, e.g. 'auth gateway'." },
+          "files": { "type": "array", "items": { "type": "string" } },
+          "loc": { "type": "integer" },
+          "purpose_oneline": { "type": "string", "description": "One-sentence description in project voice (Business Translator)." },
+          "tech_purpose": { "type": "string", "description": "One-sentence technical description (Archaeologist)." },
+          "relationships": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "target": { "type": "string" },
+                "verb": { "type": "string" },
+                "flow": { "type": "string", "enum": ["runtime", "auxiliary", "broken"] }
+              }
+            }
+          },
+          "status": {
+            "type": "string",
+            "enum": ["live", "unverified", "half-built", "broken", "dead"],
+            "description": "Set by Triage Medic."
+          },
+          "status_reason": { "type": "string" },
+          "callers_total": { "type": "integer" },
+          "todo_density": { "type": "number" },
+          "flipped": { "type": "boolean", "description": "True if this run changed the status. Triggers drift re-verification." }
+        }
+      }
+    },
+    "drift_findings": {
+      "type": "array",
+      "description": "Output of Drift Detector.",
+      "items": {
+        "type": "object",
+        "required": ["claim", "verdict"],
+        "properties": {
+          "claim_id": { "type": "string" },
+          "source": { "type": "string", "description": "e.g. 'docs/CLAUDE.md:42'" },
+          "claim": { "type": "string" },
+          "category": {
+            "type": "string",
+            "enum": ["capability", "status", "configuration", "persistence", "architectural", "path"]
+          },
+          "references": { "type": "array", "items": { "type": "string" }, "description": "abstraction ids" },
+          "verdict": {
+            "type": "string",
+            "enum": ["CONFIRMED", "PARTIAL", "CONTRADICTED", "ABSENT"]
+          },
+          "evidence": { "type": "string" },
+          "recommended_fix": { "type": "string" }
+        }
+      }
+    },
+    "undocumented_capabilities": {
+      "type": "array",
+      "description": "Abstractions that exist in code but are never mentioned in docs.",
+      "items": {
+        "type": "object",
+        "properties": {
+          "abstraction": { "type": "string" },
+          "severity": { "type": "string", "enum": ["low", "medium", "high"] },
+          "note": { "type": "string" }
+        }
+      }
+    },
+    "business_summary": {
+      "type": "string",
+      "description": "One paragraph describing the system in project voice. Written by Business Translator."
+    },
+    "unknowns": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Anything any stage couldn't resolve. Surfaced in the dashboard."
+    }
+  }
+}

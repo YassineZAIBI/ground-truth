@@ -1,0 +1,26 @@
+{
+  "name": "ground-truth",
+  "version": "1.0.0",
+  "description": "Reverse-engineer your codebase into a Business Mirror and a Technical Atlas with an interactive dashboard. Detects what's working, what's half-built, what's broken, where the docs lie, and the critical path through your system.",
+  "author": {
+    "name": "Ground Truth contributors",
+    "url": "https://github.com/YassineZAIBI/ground-truth"
+  },
+  "homepage": "https://github.com/YassineZAIBI/ground-truth",
+  "repository": "https://github.com/YassineZAIBI/ground-truth",
+  "license": "MIT",
+  "keywords": [
+    "audit",
+    "reverse-engineering",
+    "documentation",
+    "drift-detection",
+    "code-quality",
+    "architecture",
+    "dashboard",
+    "non-technical",
+    "business",
+    "claude-md"
+  ],
+  "commands": "./commands",
+  "skills": "./skills"
+}

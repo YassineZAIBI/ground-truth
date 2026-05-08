@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ground Truth — $PROJECT_NAME</title>
+<style>
+:root {
+  --bg: #fafaf7; --surface: #ffffff; --surface-2: #f1efe8;
+  --text: #2c2c2a; --text-2: #5f5e5a; --text-3: #888780;
+  --border: rgba(0,0,0,0.08); --border-strong: rgba(0,0,0,0.16);
+  --green-bg: #eaf3de; --green-fg: #27500a; --green-mid: #3b6d11;
+  --amber-bg: #faeeda; --amber-fg: #633806; --amber-mid: #854f0b;
+  --coral-bg: #faece7; --coral-fg: #712b13; --coral-mid: #993c1d;
+  --red-bg: #fcebeb; --red-fg: #791f1f; --red-mid: #a32d2d;
+  --gray-bg: #f1efe8; --gray-fg: #444441; --gray-mid: #5f5e5a;
+  --method-get: #2563eb; --method-post: #16a34a;
+  --method-put: #ca8a04; --method-patch: #d97706;
+  --method-delete: #dc2626;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #1a1a18; --surface: #232321; --surface-2: #2a2a27;
+    --text: #e8e7e1; --text-2: #b4b2a9; --text-3: #888780;
+    --border: rgba(255,255,255,0.08); --border-strong: rgba(255,255,255,0.16);
+  }
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  background: var(--bg); color: var(--text);
+  font-size: 15px; line-height: 1.6;
+}
+.wrap { max-width: 1100px; margin: 0 auto; padding: 24px 20px 80px; }
+header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 0 24px; border-bottom: 0.5px solid var(--border);
+  margin-bottom: 32px;
+}
+.brand h1 { margin: 0; font-size: 18px; font-weight: 500; }
+.brand .meta { font-size: 12px; color: var(--text-3); }
+.toggle { display: flex; gap: 4px; padding: 3px; background: var(--surface-2); border-radius: 8px; }
+.toggle button {
+  padding: 7px 16px; border: 0; background: transparent;
+  border-radius: 6px; font-size: 13px; cursor: pointer; color: var(--text-2);
+  font-family: inherit;
+}
+.toggle button.active { background: var(--surface); color: var(--text); font-weight: 500;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.04); }
+
+.window { display: none; }
+.window.active { display: block; }
+
+/* BUSINESS WINDOW ======================================================= */
+.biz-headline { text-align: center; padding: 24px 0 32px; }
+.biz-headline .label { font-size: 13px; color: var(--text-2); margin-bottom: 8px; }
+.biz-headline .number {
+  font-size: 64px; font-weight: 500; line-height: 1; color: var(--green-fg);
+  margin-bottom: 8px; letter-spacing: -0.02em;
+}
+.biz-headline .subtitle { font-size: 18px; }
+.biz-buckets { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 32px; }
+.biz-bucket { padding: 18px; border-radius: 12px; text-align: center; }
+.biz-bucket.working { background: var(--green-bg); }
+.biz-bucket.working .n { color: var(--green-fg); }
+.biz-bucket.working .l { color: var(--green-mid); }
+.biz-bucket.half { background: var(--coral-bg); }
+.biz-bucket.half .n { color: var(--coral-fg); }
+.biz-bucket.half .l { color: var(--coral-mid); }
+.biz-bucket.broken { background: var(--red-bg); }
+.biz-bucket.broken .n { color: var(--red-fg); }
+.biz-bucket.broken .l { color: var(--red-mid); }
+.biz-bucket .n { font-size: 36px; font-weight: 500; }
+.biz-bucket .l { font-size: 13px; margin-top: 4px; }
+
+.urgent {
+  background: var(--red-bg); border-radius: 12px; padding: 20px 24px;
+  margin-bottom: 32px;
+}
+.urgent .label { font-size: 12px; color: var(--red-mid); margin-bottom: 6px; }
+.urgent .title { font-size: 17px; font-weight: 500; color: var(--red-fg); margin-bottom: 8px; }
+.urgent .body { font-size: 14px; color: var(--red-fg); }
+.urgent .outcome { font-size: 13px; color: var(--red-mid); margin-top: 8px; font-style: italic; }
+
+.biz-section { margin-bottom: 24px; }
+.biz-section h3 {
+  font-size: 15px; font-weight: 500; margin: 0 0 10px;
+  display: flex; align-items: center; gap: 8px;
+}
+.biz-section .count { font-size: 13px; color: var(--text-3); font-weight: 400; }
+.biz-list { display: flex; flex-wrap: wrap; gap: 8px; }
+.biz-item {
+  padding: 10px 14px; border-radius: 8px; cursor: pointer;
+  font-size: 14px; transition: transform 0.1s; user-select: none;
+}
+.biz-item:hover { transform: translateY(-1px); }
+.biz-item.working { background: var(--surface); border: 0.5px solid var(--border-strong); }
+.biz-item.half { background: var(--coral-bg); color: var(--coral-fg); }
+.biz-item.broken { background: var(--red-bg); color: var(--red-fg); }
+
+/* TECH WINDOW ========================================================== */
+.tech-kpi { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin-bottom: 24px; }
+.tech-kpi .card { background: var(--surface-2); padding: 14px; border-radius: 10px; }
+.tech-kpi .label { font-size: 12px; color: var(--text-2); margin-bottom: 4px; }
+.tech-kpi .value { font-size: 22px; font-weight: 500; }
+
+.diagram-frame {
+  background: var(--surface-2); border-radius: 12px; margin-bottom: 12px;
+  position: relative; overflow: hidden; height: 520px;
+}
+.diagram-controls {
+  position: absolute; top: 12px; right: 12px; z-index: 10;
+  display: flex; gap: 4px; background: var(--surface);
+  border: 0.5px solid var(--border-strong); border-radius: 8px; padding: 3px;
+}
+.diagram-controls button {
+  border: 0; background: transparent; padding: 6px 10px;
+  border-radius: 5px; cursor: pointer; font-size: 13px;
+  color: var(--text-2); font-family: inherit; min-width: 32px;
+}
+.diagram-controls button:hover { background: var(--surface-2); color: var(--text); }
+.diagram-viewport {
+  width: 100%; height: 100%; cursor: grab; user-select: none;
+  display: flex; align-items: center; justify-content: center;
+}
+.diagram-viewport.dragging { cursor: grabbing; }
+.diagram-viewport > div {
+  transform-origin: center center;
+  transition: transform 0.05s linear;
+}
+.diagram-viewport svg { max-width: none; height: auto; }
+
+.legend { display: flex; gap: 16px; flex-wrap: wrap; font-size: 12px;
+  color: var(--text-2); margin-bottom: 24px; align-items: center; }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.swatch { width: 12px; height: 12px; border-radius: 3px; }
+.legend .crit { border: 2px solid #854f0b; box-sizing: border-box; }
+
+.risks-panel {
+  background: var(--surface); border: 0.5px solid var(--border-strong);
+  border-radius: 12px; padding: 20px; margin-bottom: 24px;
+}
+.risks-panel h3 { margin: 0 0 12px; font-size: 15px; font-weight: 500; }
+.risk-row {
+  display: flex; gap: 12px; padding: 12px 0;
+  border-bottom: 0.5px solid var(--border);
+}
+.risk-row:last-child { border-bottom: 0; }
+.risk-rank {
+  font-size: 13px; color: var(--text-3); font-weight: 500;
+  min-width: 24px;
+}
+.risk-body { flex: 1; }
+.risk-name { font-weight: 500; font-size: 14px; }
+.risk-explain { font-size: 13px; color: var(--text-2); margin-top: 2px; line-height: 1.5; }
+.risk-meta { font-size: 11px; color: var(--text-3); margin-top: 4px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+
+.tech-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.tech-table th { text-align: left; padding: 8px 12px; color: var(--text-2);
+  font-weight: 500; border-bottom: 0.5px solid var(--border); }
+.tech-table td { padding: 10px 12px; border-bottom: 0.5px solid var(--border); }
+.tech-table tr { cursor: pointer; }
+.tech-table tr:hover { background: var(--surface-2); }
+.pill { display: inline-block; padding: 2px 10px; border-radius: 999px;
+  font-size: 11px; font-weight: 500; }
+.pill.live { background: var(--green-bg); color: var(--green-fg); }
+.pill.unverified { background: var(--amber-bg); color: var(--amber-fg); }
+.pill.half-built { background: var(--coral-bg); color: var(--coral-fg); }
+.pill.broken { background: var(--red-bg); color: var(--red-fg); }
+.pill.dead { background: var(--gray-bg); color: var(--gray-fg); }
+.crit-marker { font-size: 10px; color: var(--amber-mid); font-weight: 500; }
+
+/* API WINDOW =========================================================== */
+.api-group {
+  background: var(--surface); border: 0.5px solid var(--border-strong);
+  border-radius: 10px; margin-bottom: 12px; overflow: hidden;
+}
+.api-group-head {
+  padding: 10px 16px; background: var(--surface-2);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 13px; font-weight: 500; color: var(--text);
+  border-bottom: 0.5px solid var(--border);
+  display: flex; justify-content: space-between; align-items: center;
+}
+.api-group-head .count { font-size: 11px; color: var(--text-3); font-weight: 400; }
+.api-row {
+  display: flex; gap: 12px; padding: 10px 16px; align-items: center;
+  border-bottom: 0.5px solid var(--border);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px;
+  cursor: pointer;
+}
+.api-row:last-child { border-bottom: 0; }
+.api-row:hover { background: var(--surface-2); }
+.api-method {
+  font-weight: 600; min-width: 56px; padding: 2px 8px;
+  border-radius: 4px; text-align: center; font-size: 11px; color: white;
+}
+.api-method.GET { background: var(--method-get); }
+.api-method.POST { background: var(--method-post); }
+.api-method.PUT { background: var(--method-put); }
+.api-method.PATCH { background: var(--method-patch); }
+.api-method.DELETE { background: var(--method-delete); }
+.api-method.ANY, .api-method.HEAD, .api-method.OPTIONS { background: var(--text-3); }
+.api-path { color: var(--text); font-weight: 500; }
+.api-purpose { color: var(--text-2); font-family: inherit;
+  font-size: 12px; margin-left: auto; max-width: 50%; text-align: right;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.api-empty {
+  text-align: center; padding: 40px; color: var(--text-3); font-size: 14px;
+  background: var(--surface-2); border-radius: 12px;
+}
+
+/* DRAWER =============================================================== */
+.drawer {
+  background: var(--surface); border: 0.5px solid var(--border-strong);
+  border-radius: 12px; padding: 20px; margin-top: 20px; display: none;
+}
+.drawer.open { display: block; }
+.drawer h2 { margin: 0 0 8px; font-size: 18px; font-weight: 500; }
+.drawer .outcome {
+  background: var(--green-bg); color: var(--green-fg); padding: 10px 14px;
+  border-radius: 8px; margin: 12px 0; font-size: 13px;
+}
+.drawer .meta { font-size: 12px; color: var(--text-3);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace; margin-top: 12px;
+  padding-top: 12px; border-top: 0.5px solid var(--border); }
+.drawer .drift {
+  background: var(--amber-bg); color: var(--amber-fg); padding: 8px 12px;
+  border-radius: 6px; margin-top: 8px; font-size: 13px;
+}
+.drawer .screenshot {
+  margin-top: 12px; max-width: 100%; border-radius: 8px;
+  border: 0.5px solid var(--border-strong);
+}
+.drawer .endpoints-mini {
+  margin-top: 12px; padding-top: 12px; border-top: 0.5px solid var(--border);
+  font-size: 12px;
+}
+.drawer .endpoints-mini h4 { margin: 0 0 6px; font-size: 12px;
+  color: var(--text-2); font-weight: 500; }
+.drawer .endpoints-mini .row {
+  display: flex; gap: 8px; padding: 4px 0;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+button.copy {
+  background: transparent; border: 0.5px solid var(--border-strong);
+  border-radius: 6px; padding: 6px 12px; font-size: 12px; cursor: pointer;
+  color: var(--text-2); font-family: inherit;
+}
+button.copy:hover { background: var(--surface-2); color: var(--text); }
+.right { text-align: right; margin: 8px 0 0; }
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <div class="brand">
+    <h1>$PROJECT_NAME</h1>
+    <div class="meta">checked $SCANNED_AT</div>
+  </div>
+  <div class="toggle">
+    <button id="t-biz" class="active" onclick="show('biz')">Business</button>
+    <button id="t-tech" onclick="show('tech')">Technical</button>
+    <button id="t-api" onclick="show('api')">API tree</button>
+  </div>
+</header>
+
+<!-- BUSINESS =========================================================== -->
+<section id="window-biz" class="window active">
+  <div class="biz-headline">
+    <div class="label" id="biz-summary"></div>
+    <div class="number" id="biz-number">—</div>
+    <div class="subtitle" id="biz-subtitle"></div>
+  </div>
+  <div class="biz-buckets">
+    <div class="biz-bucket working"><div class="n" id="bb-working">—</div><div class="l">working</div></div>
+    <div class="biz-bucket half"><div class="n" id="bb-half">—</div><div class="l">half-finished</div></div>
+    <div class="biz-bucket broken"><div class="n" id="bb-broken">—</div><div class="l">broken</div></div>
+  </div>
+  <div id="urgent-box"></div>
+  <div id="biz-sections"></div>
+</section>
+
+<!-- TECH =============================================================== -->
+<section id="window-tech" class="window">
+  <div class="tech-kpi">
+    <div class="card"><div class="label">total</div><div class="value" id="kpi-total">—</div></div>
+    <div class="card"><div class="label">live</div><div class="value" id="kpi-live">—</div></div>
+    <div class="card"><div class="label">drift</div><div class="value" id="kpi-drift">—</div></div>
+    <div class="card"><div class="label">stale CLAUDE.md</div><div class="value" id="kpi-stale">—</div></div>
+    <div class="card"><div class="label">endpoints</div><div class="value" id="kpi-endpoints">—</div></div>
+  </div>
+
+  <div class="diagram-frame">
+    <div class="diagram-controls">
+      <button onclick="zoom(0.8)" title="Zoom out">−</button>
+      <button onclick="zoomReset()" title="Reset">⌂</button>
+      <button onclick="zoom(1.25)" title="Zoom in">+</button>
+    </div>
+    <div class="diagram-viewport" id="viewport">
+      <div id="diagram-mount" style="text-align:center; color: var(--text-3); font-size: 13px;">
+        loading diagram…
+      </div>
+    </div>
+  </div>
+
+  <div class="legend">
+    <span><span class="swatch" style="background:#c0dd97; border:1px solid #3b6d11;"></span>live</span>
+    <span><span class="swatch" style="background:#fac775; border:1px solid #854f0b;"></span>unverified</span>
+    <span><span class="swatch" style="background:#f5c4b3; border:1px solid #993c1d;"></span>half-built</span>
+    <span><span class="swatch" style="background:#f7c1c1; border:1px solid #a32d2d;"></span>broken</span>
+    <span><span class="swatch crit" style="background:transparent;"></span>on critical path</span>
+    <span style="margin-left: auto; color: var(--text-3);">drag to pan · scroll to zoom</span>
+  </div>
+
+  <div class="right">
+    <button class="copy" onclick="copyMermaid()">copy diagram source</button>
+  </div>
+
+  <div id="risks-panel-mount"></div>
+
+  <table class="tech-table">
+    <thead><tr><th></th><th>Name</th><th>Literal</th><th>Status</th><th>LOC</th><th>Callers</th></tr></thead>
+    <tbody id="tech-tbody"></tbody>
+  </table>
+</section>
+
+<!-- API ================================================================ -->
+<section id="window-api" class="window">
+  <div id="api-mount"></div>
+</section>
+
+<div id="drawer" class="drawer"></div>
+</div>
+
+<script>
+const D = $DATA_JSON;
+let persona = 'biz';
+let zoomLevel = 1;
+let panX = 0, panY = 0;
+let isDragging = false;
+let dragStart = { x: 0, y: 0, panX: 0, panY: 0 };
+
+function show(p) {
+  persona = p;
+  ['biz','tech','api'].forEach(name => {
+    document.getElementById('t-' + name).classList.toggle('active', p === name);
+    document.getElementById('window-' + name).classList.toggle('active', p === name);
+  });
+  document.getElementById('drawer').classList.remove('open');
+}
+
+function escapeHtml(s) {
+  return String(s || '').replace(/[&<>"']/g, c => (
+    {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]
+  ));
+}
+
+function renderBiz() {
+  const t = D.totals;
+  document.getElementById('biz-summary').textContent = D.summary || '';
+  document.getElementById('biz-number').textContent = t.working + ' / ' + t.all;
+  document.getElementById('biz-subtitle').textContent =
+    t.all === 1 ? 'feature working' : 'features working';
+  document.getElementById('bb-working').textContent = t.working;
+  document.getElementById('bb-half').textContent = t.half_finished;
+  document.getElementById('bb-broken').textContent = t.broken;
+
+  const urgent = D.most_urgent;
+  const urgentBox = document.getElementById('urgent-box');
+  if (urgent && urgent.name) {
+    let html = '<div class="urgent"><div class="label">most urgent</div>'
+      + '<div class="title">' + escapeHtml(urgent.name) + ' needs attention</div>'
+      + '<div class="body">' + escapeHtml(urgent.what_to_watch_for || '') + '</div>';
+    if (urgent.business_outcome) {
+      html += '<div class="outcome">Until fixed: ' + escapeHtml(urgent.business_outcome) + '</div>';
+    }
+    html += '</div>';
+    urgentBox.innerHTML = html;
+  } else {
+    urgentBox.innerHTML = '';
+  }
+
+  const groups = { working: [], 'half-finished': [], broken: [] };
+  for (const a of D.abstractions) {
+    if (a.status === 'dead') continue;
+    if (groups[a.business_status]) groups[a.business_status].push(a);
+  }
+  const sectionLabels = {
+    working: ['✓ Working', 'working'],
+    'half-finished': ['⊘ Half-finished', 'half'],
+    broken: ['✕ Broken', 'broken'],
+  };
+  let html = '';
+  for (const [key, [label, cls]] of Object.entries(sectionLabels)) {
+    if (groups[key].length === 0) continue;
+    html += '<div class="biz-section"><h3>' + label
+      + ' <span class="count">(' + groups[key].length + ')</span></h3>'
+      + '<div class="biz-list">';
+    for (const a of groups[key]) {
+      html += '<div class="biz-item ' + cls
+        + '" onclick="openDrawer(\'' + a.id + '\')">'
+        + escapeHtml(a.name) + '</div>';
+    }
+    html += '</div></div>';
+  }
+  document.getElementById('biz-sections').innerHTML = html;
+}
+
+function renderTech() {
+  const k = D.tech_totals;
+  document.getElementById('kpi-total').textContent = k.total;
+  document.getElementById('kpi-live').textContent = k.live;
+  document.getElementById('kpi-drift').textContent = k.drift_count;
+  document.getElementById('kpi-stale').textContent = k.stale_claude_md;
+  document.getElementById('kpi-endpoints').textContent = k.endpoints_count;
+
+  const tbody = document.getElementById('tech-tbody');
+  let html = '';
+  for (const a of D.abstractions) {
+    const crit = a.on_critical_path ? '<span class="crit-marker">●</span>' : '';
+    html += '<tr onclick="openDrawer(\'' + a.id + '\')">'
+      + '<td>' + crit + '</td>'
+      + '<td><strong>' + escapeHtml(a.name) + '</strong></td>'
+      + '<td>' + escapeHtml(a.literal_name || '') + '</td>'
+      + '<td><span class="pill ' + a.status + '">' + a.status + '</span></td>'
+      + '<td>' + a.loc + '</td>'
+      + '<td>' + a.callers + '</td>'
+      + '</tr>';
+  }
+  tbody.innerHTML = html;
+
+  const risks = D.risks || [];
+  const mount = document.getElementById('risks-panel-mount');
+  if (risks.length === 0) {
+    mount.innerHTML = '';
+  } else {
+    let panel = '<div class="risks-panel"><h3>Critical path & top risks</h3>';
+    if (D.critical_path && D.critical_path.length) {
+      const idMap = {};
+      for (const a of D.abstractions) idMap[a.id] = a.name;
+      const path = D.critical_path.map(id => idMap[id] || id).join(' → ');
+      panel += '<div style="font-size: 13px; color: var(--text-2); margin-bottom: 12px;">'
+        + 'Critical path: <strong>' + escapeHtml(path) + '</strong></div>';
+    }
+    for (let i = 0; i < risks.length; i++) {
+      const r = risks[i];
+      panel += '<div class="risk-row">'
+        + '<div class="risk-rank">' + (i+1) + '.</div>'
+        + '<div class="risk-body">'
+        + '<div class="risk-name">' + escapeHtml(r.name) + '</div>'
+        + '<div class="risk-explain">' + escapeHtml(r.explanation || '—') + '</div>'
+        + '<div class="risk-meta">score ' + (r.risk_score || 0).toFixed(2)
+        + ' · ' + (r.centrality || 0) + ' dependents · '
+        + 'fragility ' + (r.fragility || 0).toFixed(2) + '</div>'
+        + '</div></div>';
+    }
+    panel += '</div>';
+    mount.innerHTML = panel;
+  }
+}
+
+function renderApi() {
+  const groups = D.endpoints_grouped || [];
+  const mount = document.getElementById('api-mount');
+  if (groups.length === 0) {
+    mount.innerHTML = '<div class="api-empty">'
+      + 'No HTTP API detected in this project.<br>'
+      + '<span style="font-size: 12px;">'
+      + 'Supported: Next.js (App + Pages), FastAPI, Flask, Express'
+      + '</span></div>';
+    return;
+  }
+  let html = '';
+  for (const g of groups) {
+    html += '<div class="api-group">'
+      + '<div class="api-group-head"><span>' + escapeHtml(g.prefix) + '</span>'
+      + '<span class="count">' + g.endpoints.length
+      + ' endpoint' + (g.endpoints.length === 1 ? '' : 's') + '</span></div>';
+    for (const ep of g.endpoints) {
+      html += '<div class="api-row" onclick="openDrawer(\''
+        + (ep.abstraction_id || '') + '\')">'
+        + '<span class="api-method ' + ep.method + '">' + ep.method + '</span>'
+        + '<span class="api-path">' + escapeHtml(ep.path) + '</span>';
+      if (ep.purpose) {
+        html += '<span class="api-purpose">' + escapeHtml(ep.purpose) + '</span>';
+      }
+      html += '</div>';
+    }
+    html += '</div>';
+  }
+  mount.innerHTML = html;
+}
+
+function openDrawer(id) {
+  if (!id) return;
+  const a = D.abstractions.find(x => x.id === id);
+  if (!a) return;
+  const drift = D.drift.filter(d => (d.references || []).includes(id));
+  const driftHtml = drift.map(d =>
+    '<div class="drift"><strong>' + d.verdict + ':</strong> ' + escapeHtml(d.claim)
+    + '<br><small>' + escapeHtml(d.evidence) + '</small></div>'
+  ).join('');
+
+  const body = persona === 'biz'
+    ? escapeHtml(a.purpose)
+    : escapeHtml(a.tech_purpose || a.purpose);
+
+  let outcomeHtml = '';
+  if (a.business_outcome) {
+    outcomeHtml = '<div class="outcome"><strong>What this is for:</strong> '
+      + escapeHtml(a.business_outcome) + '</div>';
+  }
+
+  let screenshotHtml = '';
+  if (a.screenshot) {
+    screenshotHtml = '<img class="screenshot" src="' + a.screenshot + '" alt="Screenshot of ' + escapeHtml(a.name) + '">';
+  }
+
+  let endpointsMiniHtml = '';
+  if (a.endpoints && a.endpoints.length > 0 && persona === 'tech') {
+    endpointsMiniHtml = '<div class="endpoints-mini"><h4>endpoints</h4>'
+      + a.endpoints.map(ep => '<div class="row">'
+          + '<span class="api-method ' + ep.method + '">' + ep.method + '</span>'
+          + '<span>' + escapeHtml(ep.path) + '</span></div>'
+      ).join('') + '</div>';
+  }
+
+  let storiesHtml = '';
+  if (a.storybook_stories && a.storybook_stories.length > 0 && persona === 'tech') {
+    storiesHtml = '<div class="endpoints-mini"><h4>storybook</h4>'
+      + a.storybook_stories.map(s => '<div class="row">'
+          + escapeHtml(s) + '</div>'
+      ).join('') + '</div>';
+  }
+
+  const meta = persona === 'tech'
+    ? '<div class="meta">'
+      + (a.files || []).map(escapeHtml).join('<br>')
+      + '<br>' + a.loc + ' LOC · ' + a.callers + ' callers'
+      + (a.on_critical_path ? ' · <span style="color: var(--amber-mid);">on critical path</span>' : '')
+      + '</div>'
+    : '';
+
+  const drawer = document.getElementById('drawer');
+  drawer.innerHTML = '<div style="display:flex; align-items:center; gap:10px;">'
+    + '<span class="pill ' + a.status + '">' + a.status + '</span>'
+    + '<h2>' + escapeHtml(a.name) + '</h2></div>'
+    + '<p style="color: var(--text-2); margin: 12px 0;">' + body + '</p>'
+    + outcomeHtml
+    + screenshotHtml
+    + driftHtml
+    + endpointsMiniHtml
+    + storiesHtml
+    + meta;
+  drawer.classList.add('open');
+  drawer.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+async function copyMermaid() {
+  try {
+    await navigator.clipboard.writeText(D.mermaid_source);
+    alert('Mermaid source copied. Paste into draw.io, Excalidraw, or any markdown editor.');
+  } catch {
+    const ta = document.createElement('textarea');
+    ta.value = D.mermaid_source;
+    document.body.appendChild(ta);
+    ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
+    alert('Mermaid source copied.');
+  }
+}
+
+function applyTransform() {
+  const inner = document.querySelector('#viewport > div');
+  if (!inner) return;
+  inner.style.transform = `translate(${panX}px, ${panY}px) scale(${zoomLevel})`;
+}
+
+function zoom(factor) {
+  zoomLevel = Math.max(0.2, Math.min(4, zoomLevel * factor));
+  applyTransform();
+}
+function zoomReset() {
+  zoomLevel = 1; panX = 0; panY = 0;
+  applyTransform();
+}
+
+function setupPanZoom() {
+  const vp = document.getElementById('viewport');
+
+  vp.addEventListener('mousedown', (e) => {
+    isDragging = true; vp.classList.add('dragging');
+    dragStart = { x: e.clientX, y: e.clientY, panX, panY };
+    e.preventDefault();
+  });
+  window.addEventListener('mousemove', (e) => {
+    if (!isDragging) return;
+    panX = dragStart.panX + (e.clientX - dragStart.x);
+    panY = dragStart.panY + (e.clientY - dragStart.y);
+    applyTransform();
+  });
+  window.addEventListener('mouseup', () => {
+    isDragging = false; vp.classList.remove('dragging');
+  });
+  vp.addEventListener('wheel', (e) => {
+    e.preventDefault();
+    const factor = e.deltaY < 0 ? 1.1 : 0.9;
+    zoom(factor);
+  }, { passive: false });
+
+  vp.addEventListener('touchstart', (e) => {
+    if (e.touches.length === 1) {
+      isDragging = true;
+      dragStart = { x: e.touches[0].clientX, y: e.touches[0].clientY, panX, panY };
+    }
+  });
+  vp.addEventListener('touchmove', (e) => {
+    if (!isDragging || e.touches.length !== 1) return;
+    panX = dragStart.panX + (e.touches[0].clientX - dragStart.x);
+    panY = dragStart.panY + (e.touches[0].clientY - dragStart.y);
+    applyTransform();
+    e.preventDefault();
+  }, { passive: false });
+  vp.addEventListener('touchend', () => { isDragging = false; });
+}
+
+renderBiz();
+renderTech();
+renderApi();
+setupPanZoom();
+
+(async () => {
+  try {
+    const mod = await import('https://esm.sh/mermaid@11/dist/mermaid.esm.min.mjs');
+    const mermaid = mod.default;
+    const dark = matchMedia('(prefers-color-scheme: dark)').matches;
+    mermaid.initialize({
+      startOnLoad: false, theme: 'base',
+      themeVariables: {
+        darkMode: dark, fontSize: '13px',
+        lineColor: dark ? '#9c9a92' : '#73726c',
+        textColor: dark ? '#c2c0b6' : '#3d3d3a',
+      },
+      flowchart: { htmlLabels: true, curve: 'basis', nodeSpacing: 40, rankSpacing: 50 },
+    });
+    const { svg } = await mermaid.render('gt-svg', D.mermaid_source);
+    const mount = document.getElementById('diagram-mount');
+    mount.innerHTML = svg;
+    mount.style.minWidth = 'fit-content';
+  } catch (e) {
+    document.getElementById('diagram-mount').innerHTML =
+      '<pre style="font-size:11px; padding: 16px;">' + escapeHtml(D.mermaid_source) + '</pre>';
+  }
+})();
+</script>
+</body>
+</html>
