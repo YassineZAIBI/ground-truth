@@ -1,20 +1,22 @@
 {
   "name": "ground-truth-marketplace",
   "owner": {
-    "name": "Ground Truth contributors",
-    "url": "https://github.com/YassineZAIBI/ground-truth"
+    "name": "Yassine Zaibi",
+    "url": "https://github.com/YassineZAIBI"
   },
   "plugins": [
     {
       "name": "ground-truth",
-      "source": ".",
       "description": "Reverse-engineer your codebase into a Business Mirror, Technical Atlas, and interactive dashboard. Detects drift between docs and code, ranks risks, maps the API tree.",
       "version": "1.0.0",
       "category": "audit",
       "tags": ["audit", "documentation", "drift", "non-technical", "architecture", "claude-md"],
       "license": "MIT",
       "homepage": "https://github.com/YassineZAIBI/ground-truth",
-      "strict": true
+      "source": {
+        "source": "github",
+        "repo": "YassineZAIBI/ground-truth"
+      }
     }
   ]
 }
