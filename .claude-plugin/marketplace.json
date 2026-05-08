@@ -8,7 +8,7 @@
     {
       "name": "ground-truth",
       "description": "Reverse-engineer your codebase into a Business Mirror, Technical Atlas, and interactive dashboard. Detects drift between docs and code, ranks risks, maps the API tree.",
-      "version": "1.0.0",
+      "version": "2.1.0",
       "category": "audit",
       "tags": ["audit", "documentation", "drift", "non-technical", "architecture", "claude-md"],
       "license": "MIT",

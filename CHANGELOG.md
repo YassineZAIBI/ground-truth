@@ -1,44 +1,31 @@
 # Changelog
 
-## v1.0.0 — 2026-05-08
+## v2.1.0 — 2026-05-08
 
-First public release.
+### Added
+- Three-tab dashboard: Business / Technical / API tree
+- Zoom + pan on the architecture diagram (mouse wheel, click-drag, +/− buttons)
+- Critical path computation with highlighted nodes on the diagram
+- Top-5 risks panel with score, centrality, fragility breakdown
+- HTTP API endpoint discovery for Next.js (App + Pages), FastAPI, Flask, Express
+- Optional screenshot embedding from `docs/screenshots/<id>.png`
+- Storybook story detection per abstraction
+- `business_outcome` field on every abstraction (what the business loses if it breaks)
+- `--auto` flag to skip vocabulary confirmation
+- `--cheap` flag for strict-budget runs (skips drift detector + business outcomes)
+- `--no-screenshots` and `--no-endpoints` opt-outs
+- Clickable `file://` link to the dashboard at end of every run
 
-### Pipeline (10 stages)
-- **voice-harvester** — mines and confirms project vocabulary on first run
-- **cartographer** — file inventory and dependency graph
-- **endpoint-cartographer** — extracts HTTP API tree (Next.js App + Pages, FastAPI, Flask, Express)
-- **archaeologist** — extracts core abstractions in project voice
-- **drift-detector** — verifies doc claims against code
-- **triage-medic** — assigns live/unverified/half-built/broken/dead
-- **risk-analyst** — computes critical path + ranks top 5 risks
-- **business-translator** — capability cards + business outcomes
-- **screenshot-scanner** — embeds optional visual assets
-- **renderer** — produces all artifacts
+### Token economics — hard rules
+- Deterministic stages never re-derived by LLM
+- Incremental runs scope LLM work to dirty abstractions only
+- Drift detector doubly scoped: re-verifies only claims with dirty target OR dirty doc
+- Business translator caches by signature `(name, status, drift_count, purpose_oneline)`
+- Risk narration only regenerates for risks whose tuple changed
 
-### Outputs
-- `BUSINESS_MIRROR.md` — plain language for non-technical stakeholders
-- `GROUND_TRUTH.md` — technical atlas with file citations
-- `.ground-truth/dashboard.html` — interactive single-file dashboard with three tabs
-- `.ground-truth/drift-report.md` — deep dive on doc-vs-code mismatches
-- `.ground-truth/data.json` — shared state (versioned in `history/`)
+### Fixed
+- `marketplace.json` schema: removed `$schema` URL, changed `source` to object form
+- `plugin.json` author and homepage now point to YassineZAIBI
 
-### Dashboard features
-- Three tabs: Business / Technical / API tree
-- Zoom and pan on the Mermaid architecture diagram
-- Critical path highlighted on the diagram
-- Top 5 risks panel with score, centrality, fragility breakdown
-- Optional embedded screenshots per abstraction
-- Storybook story detection and linking
-- Drift findings inline on each abstraction
-- Dark mode support
-
-### Flags
-- `--auto` skips the vocabulary confirmation
-- `--rebuild` forces full re-run
-- `--since <ref>` for incremental from a specific git ref
-- `--no-screenshots` and `--no-endpoints` for opt-out
-
-### Performance
-- Incremental runs typically 15-25% of first-run cost
-- All deterministic stages (Cartographer, Endpoint Cartographer, Triage, Risk Analyst, Screenshot Scanner, Renderer) run without LLM calls
+## v1.0.0 — 2026-05-07
+First public release. Two-window dashboard (Business / Technical only).
