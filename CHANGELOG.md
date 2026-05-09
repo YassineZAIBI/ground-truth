@@ -1,31 +1,23 @@
 # Changelog
 
-## v2.1.0 — 2026-05-08
+## v2.2.0 — 2026-05-09
+
+### Critical fix: agent-bypass prevention
+- **Renderer is now NON-BYPASSABLE.** The orchestrator prompt has hard "Contract" rules forbidding the agent from writing the dashboard, BUSINESS_MIRROR.md, or GROUND_TRUTH.md by hand.
+- **Template lock marker.** The dashboard template carries `ground-truth-template-v2.2` signature; renderer fails fast if the template is missing or corrupted.
+- **Post-render verification.** New `scripts/verify.py` confirms the rendered dashboard is the official template with all three tabs, the Mermaid diagram mount, and the risks panel.
+- **Renderer self-checks.** After writing dashboard.html, render.py reads back the file and exits non-zero if any required marker is missing.
 
 ### Added
-- Three-tab dashboard: Business / Technical / API tree
-- Zoom + pan on the architecture diagram (mouse wheel, click-drag, +/− buttons)
-- Critical path computation with highlighted nodes on the diagram
-- Top-5 risks panel with score, centrality, fragility breakdown
-- HTTP API endpoint discovery for Next.js (App + Pages), FastAPI, Flask, Express
-- Optional screenshot embedding from `docs/screenshots/<id>.png`
-- Storybook story detection per abstraction
-- `business_outcome` field on every abstraction (what the business loses if it breaks)
-- `--auto` flag to skip vocabulary confirmation
-- `--cheap` flag for strict-budget runs (skips drift detector + business outcomes)
-- `--no-screenshots` and `--no-endpoints` opt-outs
-- Clickable `file://` link to the dashboard at end of every run
+- **Parallel LLM stages via subagents.** Drift Detector and Business Translator now dispatch in parallel through the Task tool, halving wait time on first runs.
 
-### Token economics — hard rules
-- Deterministic stages never re-derived by LLM
-- Incremental runs scope LLM work to dirty abstractions only
-- Drift detector doubly scoped: re-verifies only claims with dirty target OR dirty doc
-- Business translator caches by signature `(name, status, drift_count, purpose_oneline)`
-- Risk narration only regenerates for risks whose tuple changed
+### Why this version exists
+v2.1 had a subtle bug: the orchestrator prompt instructed the agent to "run the renderer" but did not forbid hand-writing the dashboard. Some agent runtimes interpreted the renderer as a suggestion and improvised a fresh dashboard each time, producing different-shaped outputs (6-tab, 7-tab, no-Mermaid). v2.2 closes this hole with hard contracts and post-write verification.
 
-### Fixed
-- `marketplace.json` schema: removed `$schema` URL, changed `source` to object form
-- `plugin.json` author and homepage now point to YassineZAIBI
+## v2.1.0 — 2026-05-08
+- Three-tab dashboard, zoom + pan, risks panel, API tree
+- Hard token-budget rules
+- Clickable file:// link at end of run
 
 ## v1.0.0 — 2026-05-07
-First public release. Two-window dashboard (Business / Technical only).
+First public release.

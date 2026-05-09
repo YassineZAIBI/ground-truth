@@ -260,7 +260,28 @@ def render_drift_report_md(data: dict) -> str:
 
 def render_dashboard_html(data: dict, voice: dict) -> str:
     template_path = TEMPLATE_DIR / "dashboard.html"
+    if not template_path.exists():
+        raise SystemExit(
+            f"FATAL: dashboard template missing at {template_path}\n"
+            "The skill installation is incomplete. Re-install the plugin."
+        )
     template = template_path.read_text()
+
+    required_markers = [
+        "ground-truth-template-v2.2",
+        'id="window-biz"',
+        'id="window-tech"',
+        'id="window-api"',
+        "$DATA_JSON",
+        "$PROJECT_NAME",
+    ]
+    missing = [m for m in required_markers if m not in template]
+    if missing:
+        raise SystemExit(
+            f"FATAL: dashboard template at {template_path} is corrupted.\n"
+            f"Missing markers: {missing}\n"
+            "Re-install the plugin to restore the official template."
+        )
 
     abstractions = data.get("abstractions", [])
     biz_abstractions = [a for a in abstractions if a.get("status") != "dead"]
@@ -447,6 +468,22 @@ def main() -> int:
     print("⏺ Renderer · writing artifacts")
     for name, sz in sizes.items():
         print(f"  ▸ {name} ({sz/1024:.1f} KB)")
+
+    dashboard_text = (Path(".ground-truth") / "dashboard.html").read_text()
+    required_in_output = [
+        "ground-truth-template-v2.2",
+        'id="window-biz"',
+        'id="window-tech"',
+        'id="window-api"',
+    ]
+    missing_in_output = [m for m in required_in_output if m not in dashboard_text]
+    if missing_in_output:
+        print(f"\n  ⚠ WARNING: rendered dashboard is missing markers: {missing_in_output}", file=sys.stderr)
+        print("  This indicates the template was not applied correctly.", file=sys.stderr)
+        return 2
+
+    cwd = Path.cwd().absolute()
+    print(f"\n  ✓ Dashboard ready: file://{cwd}/.ground-truth/dashboard.html")
 
     return 0
 

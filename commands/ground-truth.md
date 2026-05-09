@@ -1,112 +1,203 @@
 ---
-description: Run the Ground Truth audit — reverse-engineer the project's current state into a Business Mirror, Technical Atlas, and interactive dashboard
-allowed-tools: Bash, Read, Write, Edit, Glob, Grep
+description: Run the Ground Truth audit — produce a Business Mirror, Technical Atlas, and the official three-tab interactive dashboard.
+allowed-tools: Bash, Read, Write, Edit, Glob, Grep, Task
 ---
 
 # /ground-truth
 
-Reverse-engineer this codebase into two audience-aware artifacts plus an interactive dashboard. The goal is faithful: what is actually here, what works, what doesn't, where the docs lie.
+You are running a deterministic, multi-stage audit pipeline. Most of the heavy lifting is done by Python scripts and a fixed HTML template that ship with this skill. **Your job is to invoke them in order, not to invent your own dashboard or markdown.**
+
+## NON-NEGOTIABLE CONTRACTS — READ FIRST
+
+These are not suggestions. Violating any of them produces a broken dashboard and defeats the whole skill.
+
+### Contract 1: NEVER WRITE THE DASHBOARD YOURSELF
+
+The dashboard is produced by **exactly one** path:
+```
+python3 skills/ground-truth/scripts/render.py
+```
+That script reads `.ground-truth/data.json` and the template at `skills/ground-truth/templates/dashboard.html`, then writes `.ground-truth/dashboard.html`.
+
+**You are forbidden from writing HTML to `.ground-truth/dashboard.html`, `BUSINESS_MIRROR.md`, `GROUND_TRUTH.md`, or `.ground-truth/drift-report.md` yourself.** Even if you think you can do better. Even if the user asks. Even if the script appears to fail. If the script fails, fix the script and re-run it — do not bypass it.
+
+### Contract 2: VERIFY THE TEMPLATE WAS USED
+
+After running the renderer, run this verification:
+```
+grep -q "ground-truth-template-v2.2" .ground-truth/dashboard.html && grep -q "id=\"window-biz\"" .ground-truth/dashboard.html && grep -q "id=\"window-tech\"" .ground-truth/dashboard.html && grep -q "id=\"window-api\"" .ground-truth/dashboard.html && echo "OK" || echo "TEMPLATE_LOST"
+```
+If the result is `TEMPLATE_LOST`, the renderer did not use the official template. Re-run `render.py`. If it still fails, abort with an error — do not "help" by hand-writing the dashboard.
+
+### Contract 3: EVERY DETERMINISTIC STAGE IS A PYTHON CALL
+
+These six stages are Python scripts. You must run them with `python3 <path>` and read stdout/stderr. You must not summarize, regenerate, or replace their output:
+- `scripts/crawl.py`
+- `scripts/endpoints.py`
+- `scripts/triage.py`
+- `scripts/risks.py`
+- `scripts/screenshots.py`
+- `scripts/render.py`
+
+If you find yourself about to write Python output yourself, STOP. Run the script.
+
+### Contract 4: DATA.JSON IS THE ONLY SHARED STATE
+
+All stages read from and write to `.ground-truth/data.json`. You don't pass data between stages by remembering it — you read the file. This is what makes incremental runs work.
+
+---
 
 ## Mode detection — DO THIS FIRST
 
-Read `.ground-truth/data.json`. Three modes:
+```
+test -f .ground-truth/data.json && echo "INCREMENTAL" || echo "FIRST_RUN"
+```
 
-- **Missing** → first run. All stages execute.
-- **Present + user passed `--rebuild`** → full re-run, but skip vocabulary confirmation if `voice.yaml` already exists.
-- **Present + no `--rebuild`** → **INCREMENTAL** run. This is the cheap path. Only re-process what changed.
+- **First run** → all stages execute, voice harvester confirms with user (unless `--auto`).
+- **Incremental + no `--rebuild`** → only re-process what `git diff` says changed.
+- **Incremental + `--rebuild`** → full re-run, skip vocabulary confirmation if `voice.yaml` exists.
 
-If the user passed `--since <ref>`, use that ref as the diff base. Otherwise use `data.last_commit`.
+If user passed `--since <ref>`, use that as the diff base.
 
 ## Flags
 
-- `--auto` — skip voice-harvester confirmation. Pipeline proceeds without waiting for user input.
-- `--rebuild` — full re-run, ignore cache.
-- `--since <ref>` — incremental from a specific git ref.
-- `--no-screenshots` — skip the screenshot scanner.
-- `--no-endpoints` — skip the endpoint cartographer.
-- `--cheap` — strict token budget: skip drift detector, skip business outcomes, render only the Tech window. Useful for fast weekly checks.
+- `--auto` — skip voice-harvester confirmation
+- `--rebuild` — full re-run, ignore cache
+- `--since <ref>` — incremental from a specific git ref
+- `--no-screenshots` — skip screenshot scanner
+- `--no-endpoints` — skip endpoint cartographer
+- `--cheap` — skip drift-detector and business-outcome generation; render Tech window only
 
-## Token economics — HARD RULES, NOT GUIDELINES
+## Token economics — HARD RULES
 
-These rules are non-negotiable. Violating them defeats the purpose of incremental mode.
+**Rule 1.** Deterministic stages never use the LLM. Period.
 
-**Rule 1 — Deterministic stages never use the LLM.** Cartographer, Endpoint Cartographer, Triage Medic, Risk Analyst (scoring step), Screenshot Scanner, and Renderer are Python scripts. Call them with `python3` and read their stdout. Do not regenerate, summarize, or reinterpret their output.
-
-**Rule 2 — On incremental runs, compute the dirty set first.** Before any LLM stage, compute:
+**Rule 2.** On incremental runs, before any LLM call, compute:
 ```
-dirty_files = git diff --name-only <last_commit> HEAD
-dirty_abstractions = abstractions where any member file is in dirty_files
-dirty_docs = README.md, CLAUDE.md files in dirty_files
+git diff --name-only <last_commit> HEAD
 ```
-If `dirty_abstractions` is empty AND `dirty_docs` is empty, exit immediately after the renderer with the message: "No changes since <last_commit>. Re-rendered dashboard from cache."
+If empty AND no doc files (README, CLAUDE.md) changed, skip directly to renderer with the message: "No changes since <commit>. Re-rendered dashboard from cache."
 
-**Rule 3 — Archaeologist re-runs are scoped.** Only re-evaluate abstractions whose files appear in `dirty_files`. For unchanged abstractions, the cached record is canonical — copy it forward verbatim.
+**Rule 3.** Archaeologist re-runs only on dirty abstractions. Cache the rest.
 
-**Rule 4 — Drift Detector re-runs are doubly scoped.** Re-verify a claim only if (a) the claim's target abstraction is dirty, OR (b) the doc the claim came from is dirty. If both conditions are false, copy the cached verdict forward.
+**Rule 4.** Drift Detector re-verifies a claim only if its target abstraction is dirty OR the doc it came from is dirty.
 
-**Rule 5 — Business Translator caches by signature.** A capability card is regenerated only if `(name, status, drift_count, purpose_oneline)` of the abstraction changed since last run. Otherwise reuse cached card.
+**Rule 5.** Business Translator caches by signature `(name, status, drift_count, purpose_oneline)`. Regenerate only when this changes.
 
-**Rule 6 — Risk Analyst narration is incremental.** The Python script `risks.py` always re-runs (it's cheap). The LLM only writes `explanation` strings for risks whose `(name, status, centrality, drift_count)` tuple changed.
+**Rule 6.** Risk Analyst narration regenerates only for risks whose `(name, status, centrality, drift_count)` changed.
 
-**Rule 7 — `--cheap` mode skips the most expensive LLM stages.** When `--cheap` is set, skip: drift-detector entirely, business outcomes (set them to empty), Risk Analyst narration. The Tech window still renders.
+**Rule 7.** With `--cheap`: skip drift-detector + business-outcomes + risk narration entirely.
 
-If you find yourself about to run a full LLM pass on an unchanged input, STOP. Re-read the rules.
+---
 
-## Pipeline stages
+## Pipeline — execute in this order
 
-Read each stage prompt at `skills/ground-truth/stages/<stage>.md` and follow it. Stages share `.ground-truth/data.json`.
+### Stage 1 — voice-harvester (LLM, first run only)
 
-1. **voice-harvester** — first run only. LLM. Asks user unless `--auto`.
-2. **cartographer** — `scripts/crawl.py`. Deterministic.
-3. **endpoint-cartographer** — `scripts/endpoints.py`. Deterministic. Skipped with `--no-endpoints`.
-4. **archaeologist** — LLM, scoped by Rule 3.
-5. **drift-detector** — LLM, scoped by Rule 4. Skipped with `--cheap`.
-6. **triage-medic** — `scripts/triage.py`. Deterministic.
-7. **risk-analyst** — `scripts/risks.py` for scoring (deterministic) + LLM for narration scoped by Rule 6. Narration skipped with `--cheap`.
-8. **business-translator** — LLM, cached by Rule 5. Outcomes skipped with `--cheap`.
-9. **screenshot-scanner** — `scripts/screenshots.py`. Deterministic. Skipped with `--no-screenshots`.
-10. **renderer** — `scripts/render.py`. Deterministic.
+Read `skills/ground-truth/stages/voice-harvester.md` and follow it. Mines vocabulary from README, CLAUDE.md, manifests. Writes `.ground-truth/voice.yaml`. Confirms with user unless `--auto`.
 
-## Terminal output
+### Stage 2 — cartographer (deterministic)
 
-One line per stage. Format:
-
+```bash
+python3 skills/ground-truth/scripts/crawl.py
 ```
-⏺ <stage> (<n>/<total>) · <activity>
-  ▸ <key result>
+Print stdout. Do not interpret. Move on.
+
+### Stage 3 — endpoint-cartographer (deterministic, skip with `--no-endpoints`)
+
+```bash
+python3 skills/ground-truth/scripts/endpoints.py
 ```
 
-For incremental runs, prefix each cached stage with `⏺ <stage> · cached, no LLM call`.
+### Stage 4 — archaeologist + drift-detector + business-translator (LLM, IN PARALLEL)
 
-## End-of-run summary — ALWAYS PRINT THIS LAST
+These three LLM stages share the same input (`data.json` after triage) but produce independent outputs. Run them in parallel using the `Task` tool with three subagents.
 
-After the renderer completes, print this exact summary block. The dashboard URL must be a clickable `file://` link.
+**Read this carefully**: dispatch three `Task` calls in a SINGLE message (parallel execution). Each subagent reads its stage prompt and writes only its own slice of `data.json`:
+
+- Subagent A: read `skills/ground-truth/stages/archaeologist.md`, populate `data.abstractions[]`
+- Subagent B: read `skills/ground-truth/stages/drift-detector.md`, populate `data.drift_findings[]` (skip if `--cheap`)
+- Subagent C: read `skills/ground-truth/stages/business-translator.md`, populate `purpose_oneline` and `business_outcome` per abstraction (skip business_outcome if `--cheap`)
+
+Wait, B and C need A's output. So actually:
+
+**Phase 4a (sequential):** Archaeologist alone — populates `abstractions[]`.
+
+**Phase 4b (parallel via Task):** Drift Detector + Business Translator dispatched together in one message.
+
+When you dispatch them in parallel, each subagent must:
+1. Re-read `data.json` fresh
+2. Modify only its assigned fields
+3. Write back atomically (read, modify, write)
+
+Use file locking pattern: each subagent reads the full file, computes its changes against a deep copy, writes back. The renderer at the end is the source of truth — if there's a write conflict, the last writer wins, but since the fields are disjoint this should not corrupt data.
+
+If parallel dispatch is unavailable in your runtime, run them sequentially — but always use the `Task` tool to keep each in its own context window, which avoids polluting the orchestrator's context with stage details.
+
+### Stage 5 — triage-medic (deterministic)
+
+```bash
+python3 skills/ground-truth/scripts/triage.py
+```
+
+### Stage 6 — risk-analyst (mixed)
+
+First the deterministic scoring:
+```bash
+python3 skills/ground-truth/scripts/risks.py
+```
+
+Then, unless `--cheap`, narrate each risk per `skills/ground-truth/stages/risk-analyst.md` (1-2 sentence explanation per risk, written into `data.risks[i].explanation`).
+
+### Stage 7 — screenshot-scanner (deterministic, skip with `--no-screenshots`)
+
+```bash
+python3 skills/ground-truth/scripts/screenshots.py
+```
+
+### Stage 8 — renderer (deterministic, MANDATORY)
+
+```bash
+python3 skills/ground-truth/scripts/render.py
+```
+
+**Then immediately run the verification from Contract 2.** If `TEMPLATE_LOST`, re-run the renderer. Do not proceed past this stage with a broken dashboard.
+
+---
+
+## Final summary block — print exactly this
 
 ```
 ──────────────────────────────────────────────────────────────
  Summary
 
  <N> abstractions · <X> of <N> fully working · <D> drift findings
- <E> endpoints discovered · <R> risks scored · critical path: <names>
+ <E> endpoints · <R> risks scored · critical path: <names or "n/a">
 
  Top 3 to look at:
   1. <name> — <one-line problem>
   2. <name> — <one-line problem>
   3. <name> — <one-line problem>
 
- Open the dashboard (clickable):
+ Open the dashboard (cmd-click on Mac, ctrl-click on Windows):
    file:///<absolute-path-to-cwd>/.ground-truth/dashboard.html
 
  Share with non-technical: ./BUSINESS_MIRROR.md
  Engineer view:            ./GROUND_TRUTH.md
- Tokens used this run:     ~<estimate>
 ──────────────────────────────────────────────────────────────
 ```
 
-To compute the absolute path, run `pwd` and concatenate `/.ground-truth/dashboard.html`. The leading `file://` makes it a clickable hyperlink in most modern terminals.
+Compute the absolute path with `pwd` and concatenate `/.ground-truth/dashboard.html`. The `file://` prefix is what makes the link clickable in modern terminals.
 
-For the token estimate, sum the rough token counts you used in this run across all LLM calls. If you cannot estimate, omit that line silently.
+If the verification in Contract 2 ever returned `TEMPLATE_LOST` and you couldn't recover, instead print:
+
+```
+ERROR: Dashboard template was not used. Run /ground-truth --rebuild.
+The renderer at skills/ground-truth/scripts/render.py exists; do not bypass it.
+```
+
+---
 
 ## When something is unclear
 
-If a stage cannot complete (no README, no recognized framework, no `CLAUDE.md`), do not invent. Record the gap in `data.unknowns[]` and continue. The dashboard surfaces unknowns as their own section.
+If a stage cannot complete (no README, no recognized framework, no `CLAUDE.md`), record the gap in `data.unknowns[]` and continue. The dashboard surfaces unknowns in their own section. Do not fabricate.

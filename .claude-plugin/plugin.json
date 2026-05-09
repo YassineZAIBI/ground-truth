@@ -1,7 +1,7 @@
 {
   "name": "ground-truth",
-  "version": "2.1.0",
-  "description": "Reverse-engineer your codebase into a Business Mirror and a Technical Atlas with an interactive dashboard. Detects what's working, half-built, broken, where the docs lie, the critical path, and the API tree.",
+  "version": "2.2.0",
+  "description": "Reverse-engineer your codebase into a Business Mirror, Technical Atlas, and three-tab interactive dashboard with API tree, risks panel, zoomable Mermaid diagram.",
   "author": {
     "name": "Yassine Zaibi",
     "url": "https://github.com/YassineZAIBI"
@@ -20,7 +20,8 @@
     "non-technical",
     "business",
     "claude-md",
-    "api-tree"
+    "api-tree",
+    "mermaid"
   ],
   "commands": "./commands",
   "skills": "./skills"
